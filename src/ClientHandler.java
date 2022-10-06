@@ -1,5 +1,6 @@
 import java.io.*;
 import java.net.*;
+import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.*;
@@ -19,14 +20,13 @@ public class ClientHandler implements Runnable {
             try{
                 if(!client.clientUserName.equals(clientUserName)){
                         File sourceFile = new File(message);
+                        System.out.println(sourceFile);
                     if(sourceFile.isFile()){
                         String nameFile = client.clientUserName + sourceFile.getName();
-//                            System.out.println(nameFile);
                         File destinationPath = new File("C:\\Users\\YC\\OneDrive\\Documents\\java\\course\\socket\\Document\\"+nameFile);
                         try
                         {
-                            Files.move(sourceFile.toPath(),destinationPath.toPath(), REPLACE_EXISTING);
-//                            Files.copy(sourceFile.toPath(),destinationPath.toPath(), REPLACE_EXISTING);
+                            Files.copy(sourceFile.toPath(),destinationPath.toPath(), REPLACE_EXISTING);
                         }catch (IOException ioe){
                             ioe.printStackTrace();
                         }
@@ -43,6 +43,8 @@ public class ClientHandler implements Runnable {
         }
 
     }
+
+
     public void clientLeft() throws IOException {
         clients.remove(this);
         broadcastMessage("Server: " + clientUserName + " has left the chat!!");
