@@ -8,7 +8,6 @@ public class Server {
     private ServerSocket server;
     private DataInputStream inputStream     = null;
 
-
     public Server(int port) {
         try {
 

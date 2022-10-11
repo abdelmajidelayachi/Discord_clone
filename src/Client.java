@@ -1,16 +1,12 @@
 import java.io.*;
 import java.net.Socket;
-import java.net.URI;
-import java.nio.channels.FileChannel;
 import java.nio.file.*;
-import java.util.Arrays;
 import java.util.Scanner;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-
-import static java.nio.file.StandardCopyOption.*;
 
 public class Client {
+
+    private static DataOutputStream dataOutputStream = null;
+    private static DataInputStream dataInputStream = null;
     private BufferedWriter bufferedWriter;
     private BufferedReader bufferedReader;
     private Socket socket;
@@ -27,6 +23,31 @@ public class Client {
         }
     }
 
+    public void sendFile(String path) throws IOException {
+        int bytes = 0;
+        // Open the File where he located in your pc
+
+        dataInputStream = new DataInputStream(socket.getInputStream());
+        dataOutputStream = new DataOutputStream(socket.getOutputStream());
+        File file = new File(path);
+        FileInputStream fileInputStream
+                = new FileInputStream(file);
+
+        // Here we send the File to Server
+        dataOutputStream.writeLong(file.length());
+        // Here we  break file into chunks
+        byte[] buffer = new byte[4 * 1024];
+        while ((bytes = fileInputStream.read(buffer))
+                != -1) {
+            // Send the file to Server Socket
+            dataOutputStream.write(buffer, 0, bytes);
+            dataOutputStream.flush();
+        }
+        // close the file here
+        fileInputStream.close();
+
+
+    }
     public  void sendMessage(){
         try{
             bufferedWriter.write(clientUserName);
@@ -47,22 +68,24 @@ public class Client {
                             break;
                         }
                     } catch (Exception e) {
-                        System.out.println("Pls enter the correct type 1 or 2. "+e.getMessage());
+                        System.out.println("Pls enter the correct type 1 or 2. " + e.getMessage());
                     }
                 }
 
                 if(typeInt == 1){
+                    System.out.print("Enter the your message : ");
                     String getMessageToSend = scanner.nextLine();
-                    bufferedWriter.write(clientUserName + ": "+ getMessageToSend );
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
+                    bufferedWriter.write("text:"+clientUserName + ":"+ getMessageToSend );
                 } else {
+                    System.out.print("Enter file path : ");
                     String getMessageToSend = scanner.nextLine();
                     Path path = Path.of(getMessageToSend);
-                    bufferedWriter.write(path.toFile().getPath());
-                    bufferedWriter.newLine();
-                    bufferedWriter.flush();
+                    bufferedWriter.write("file:"+clientUserName + ":"+ path.getFileName());
+//                    System.out.println(path);
+                    sendFile(path.toString());
                 }
+                bufferedWriter.newLine();
+                bufferedWriter.flush();
             }
         }catch (IOException e){
             closeEverything(socket, bufferedReader, bufferedWriter);

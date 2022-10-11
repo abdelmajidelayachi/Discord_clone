@@ -1,17 +1,14 @@
 import java.io.*;
 import java.net.*;
-import java.nio.channels.FileChannel;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
 import java.util.*;
 
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 public class ClientHandler implements Runnable {
     public static ArrayList<ClientHandler> clients = new ArrayList<>();
     private BufferedWriter bufferedWriter;
     private BufferedReader bufferedReader;
-    private Socket socket;
+    private static Socket socket;
 
     private String clientUserName ;
 
@@ -19,29 +16,41 @@ public class ClientHandler implements Runnable {
         for (ClientHandler client: clients) {
             try{
                 if(!client.clientUserName.equals(clientUserName)){
-                        File sourceFile = new File(message);
-                        System.out.println(sourceFile);
-                    if(sourceFile.isFile()){
-                        String nameFile = client.clientUserName + sourceFile.getName();
-                        File destinationPath = new File("C:\\Users\\YC\\OneDrive\\Documents\\java\\course\\socket\\Document\\"+nameFile);
-                        try
-                        {
-                            Files.copy(sourceFile.toPath(),destinationPath.toPath(), REPLACE_EXISTING);
-                        }catch (IOException ioe){
-                            ioe.printStackTrace();
-                        }
-                            client.bufferedWriter.write(clientUserName+" : file -> "+ destinationPath.toURI());
-                    }else{
-                        client.bufferedWriter.write(message);
+                    String[] messageContent = message.split(":");
+                    if(messageContent[0].equals("file")){
+                        File destinationPath = new File("Document/"+System.currentTimeMillis()+messageContent[2]);
+//                        System.out.println("hello" + destinationPath.getPath());
+                         receiveFile(destinationPath.getPath());
+                         client.bufferedWriter.write(messageContent[1]+" : file -> "+ destinationPath.toURI());
+                    }else if (messageContent[0].equals("text")){
+                        client.bufferedWriter.write(messageContent[1] + " : " + messageContent[2]);
                     }
+
                     client.bufferedWriter.newLine();
                     client.bufferedWriter.flush();
+
                 }
             }catch (IOException e){
                 closeEverything(socket,bufferedReader,bufferedWriter);
             }
         }
 
+    }
+
+    public static void receiveFile(String fileName) throws IOException {
+        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
+        int bytes = 0;
+        FileOutputStream fileOutputStream = new FileOutputStream(fileName);
+
+        long size = dataInputStream.readLong();
+        byte[] buffer = new byte[4*1024];
+//        System.out.println(size);
+
+        while(size > 0 && (bytes = dataInputStream.read(buffer,0,(int)Math.min(buffer.length,size))) != -1){
+            fileOutputStream.write(buffer,0,bytes);
+            size -= bytes;
+        }
+        fileOutputStream.close();
     }
 
 
@@ -67,7 +76,7 @@ public class ClientHandler implements Runnable {
     }
     public ClientHandler(Socket socket) throws IOException {
         try{
-            this.socket = socket;
+            ClientHandler.socket = socket;
             this.bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
             this.bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             this.clientUserName = bufferedReader.readLine();
@@ -86,6 +95,7 @@ public class ClientHandler implements Runnable {
            try{
                messageClient = bufferedReader.readLine();
                broadcastMessage(messageClient);
+
            }catch(IOException e){
                try {
                    closeEverything(socket, bufferedReader,bufferedWriter);
