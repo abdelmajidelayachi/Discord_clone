@@ -16,12 +16,16 @@ public class ClientHandler implements Runnable {
         for (ClientHandler client: clients) {
             try{
                 if(!client.clientUserName.equals(clientUserName)){
-                    String[] messageContent = message.split(":");
+                    String[] messageContent = message.split(": ");
                     if(messageContent[0].equals("file")){
-                        File destinationPath = new File("Document/"+System.currentTimeMillis()+messageContent[2]);
+//                        File destinationPath = new File("Document/"+System.currentTimeMillis()+messageContent[2]);
 //                        System.out.println("hello" + destinationPath.getPath());
-                         receiveFile(destinationPath.getPath());
-                         client.bufferedWriter.write(messageContent[1]+" : file -> "+ destinationPath.toURI());
+                        String  sender = messageContent[1];
+                        String dataFile = messageContent[2];
+                        String fileName = messageContent[3];
+
+                         receiveFile(sender,dataFile,fileName,client);
+
                     }else if (messageContent[0].equals("text")){
                         client.bufferedWriter.write(messageContent[1] + " : " + messageContent[2]);
                     }
@@ -37,20 +41,36 @@ public class ClientHandler implements Runnable {
 
     }
 
-    public static void receiveFile(String fileName) throws IOException {
-        DataInputStream dataInputStream = new DataInputStream(socket.getInputStream());
-        int bytes = 0;
-        FileOutputStream fileOutputStream = new FileOutputStream(fileName);
-
-        long size = dataInputStream.readLong();
-        byte[] buffer = new byte[4*1024];
-//        System.out.println(size);
-
-        while(size > 0 && (bytes = dataInputStream.read(buffer,0,(int)Math.min(buffer.length,size))) != -1){
-            fileOutputStream.write(buffer,0,bytes);
-            size -= bytes;
+    public static void receiveFile(String sender,String dataFile, String fileName,ClientHandler client) throws IOException {
+        String downloadPath = System.getProperty("user.dir") + File.separator + "download" + File.separator + fileName;
+        File downloadFolder = new File(System.getProperty("user.dir") + File.separator + "download");
+        if(!downloadFolder.exists()) downloadFolder.mkdir();
+        File file  = new File(downloadPath);
+        client.bufferedWriter.write("File is Downloading...");
+        try{
+            file.createNewFile();
+        }catch (IOException ioException)
+        {
+            ioException.printStackTrace();
         }
-        fileOutputStream.close();
+        byte[] fileArrayBytes = convertStringDataToBytes(dataFile);
+        try{
+            FileOutputStream fileOutputStream1 =  new FileOutputStream(file);
+            fileOutputStream1.write(fileArrayBytes);
+            fileOutputStream1.close();
+            client.bufferedWriter.write(">> "+sender+" : "+downloadPath);
+        }catch (IOException ioException){
+            ioException.printStackTrace();
+        }
+
+    }
+    public static byte[] convertStringDataToBytes(String dataString){
+        String[] arrayString = dataString.substring(1,dataString.length()-1).split(", ");
+        byte[] bytes = new byte[arrayString.length];
+        for (int i = 0; i < arrayString.length; i++) {
+            bytes[i] = Byte.parseByte(arrayString[i]);
+        }
+        return bytes;
     }
 
 

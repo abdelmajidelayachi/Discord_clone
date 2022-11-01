@@ -1,6 +1,7 @@
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.*;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Client {
@@ -23,29 +24,27 @@ public class Client {
         }
     }
 
-    public void sendFile(String path) throws IOException {
-        int bytes = 0;
+    public void sendFile(String sender, String path) throws IOException {
         // Open the File where he located in your pc
 
-        dataInputStream = new DataInputStream(socket.getInputStream());
-        dataOutputStream = new DataOutputStream(socket.getOutputStream());
         File file = new File(path);
-        FileInputStream fileInputStream
-                = new FileInputStream(file);
-
-        // Here we send the File to Server
-        dataOutputStream.writeLong(file.length());
-        // Here we  break file into chunks
-        byte[] buffer = new byte[4 * 1024];
-        while ((bytes = fileInputStream.read(buffer))
-                != -1) {
-            // Send the file to Server Socket
-            dataOutputStream.write(buffer, 0, bytes);
-            dataOutputStream.flush();
+        if(!file.exists()){
+            System.out.println("file doesn't exist");
+            return;
         }
-        // close the file here
-        fileInputStream.close();
-
+        try{
+            byte[] fileBytes = new byte[(int) file.length()];
+            FileInputStream fileInputStream = new FileInputStream(file);
+            String fileName = file.getName();
+            fileInputStream.read(fileBytes);
+            bufferedWriter.write("file: "+sender+": "+ Arrays.toString(fileBytes)+": "+fileName);
+            bufferedWriter.newLine();
+            bufferedWriter.flush();
+            fileInputStream.close();
+            System.out.println("File sent successfully");
+        }catch (IOException ioe){
+            ioe.printStackTrace();
+        }
 
     }
     public  void sendMessage(){
@@ -75,14 +74,11 @@ public class Client {
                 if(typeInt == 1){
                     System.out.print("Enter the your message : ");
                     String getMessageToSend = scanner.nextLine();
-                    bufferedWriter.write("text:"+clientUserName + ":"+ getMessageToSend );
+                    bufferedWriter.write("text: "+clientUserName + ": "+ getMessageToSend );
                 } else {
                     System.out.print("Enter file path : ");
                     String getMessageToSend = scanner.nextLine();
-                    Path path = Path.of(getMessageToSend);
-                    bufferedWriter.write("file:"+clientUserName + ":"+ path.getFileName());
-//                    System.out.println(path);
-                    sendFile(path.toString());
+                    sendFile(clientUserName , getMessageToSend);
                 }
                 bufferedWriter.newLine();
                 bufferedWriter.flush();
